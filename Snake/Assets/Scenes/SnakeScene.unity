@@ -2143,6 +2143,9 @@ MonoBehaviour:
   distanceToMove: 1
   direction: {x: -1, y: 0}
   snakeBodyPrefab: {fileID: 686973635719275103, guid: f9c6d36cf31ca0b4eb3b7bee35c6147c, type: 3}
+  snakeTailPrefab: {fileID: 686973635719275103, guid: 0737b18e855cf274db46a29d6446ef5e, type: 3}
+  straightBodySprite: {fileID: 21300000, guid: 50293865083e99d459e57e50a2f0d6cb, type: 3}
+  curvedBodySprite: {fileID: 21300000, guid: 31c563ed2218a3b4b8c55b3230d63e42, type: 3}
   mapArea: {fileID: 732842144}
 --- !u!212 &1039544809
 SpriteRenderer:
@@ -2185,8 +2188,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 0.6788737, b: 0.3443396, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 9632b159fa9822b4288067a5417db11f, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
