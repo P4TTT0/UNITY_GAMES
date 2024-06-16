@@ -16,11 +16,11 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Game
   - Water
   - UI
-  - 
-  - 
+  - Background
+  - DirtBackGround
   - 
   - 
   - 
@@ -46,6 +46,12 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: DirtBackground
+    uniqueID: 1067060091
+    locked: 0
+  - name: Background
+    uniqueID: 774205891
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0

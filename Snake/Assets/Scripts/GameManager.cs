@@ -31,11 +31,11 @@ public class GameManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
+            this.snake.InitSnake();
+            this.food.RandomizePosition();
             this.gameOverScreen.gameObject.SetActive(false);
             this.pointsText.gameObject.SetActive(true);
             this.Score = 0;
-            this.snake.InitSnake();
-            this.food.RandomizePosition();
         }
     }
 
