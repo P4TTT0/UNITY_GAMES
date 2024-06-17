@@ -4145,8 +4145,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0634c9c8b410d849a7c6affc009d778, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timeToMove: 0.08
-  distanceToMove: 1
   direction: {x: -1, y: 0}
   snakeBodyPrefab: {fileID: 686973635719275103, guid: f9c6d36cf31ca0b4eb3b7bee35c6147c, type: 3}
   snakeTailPrefab: {fileID: 686973635719275103, guid: 0737b18e855cf274db46a29d6446ef5e, type: 3}

@@ -1,4 +1,5 @@
 using Assets.Scripts;
+using Assets.Scripts.Functions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,122 +7,199 @@ using UnityEngine;
 
 public class Snake : MonoBehaviour
 {
-    public float timeToMove = 0.5f;
-    public float distanceToMove = 0.5f;
+    #region ||==|| PROPERTIES ||==||
+    public bool IsAlive { get { return this.isAlive; } }
+    #endregion
+
+    #region ||==|| VARIABLES ||==||
     public Vector2 direction = Vector2.left;
-    private Queue<Vector2> directionBuffer = new Queue<Vector2>(); // Cola para almacenar las direcciones
+    private Queue<Vector2> directionBuffer = new Queue<Vector2>(); 
     private List<Transform> snakeBody = new List<Transform>();
-    public Transform snakeBodyPrefab;
-    public Transform snakeTailPrefab;
-    public Sprite straightBodySprite;
-    public Sprite curvedBodySprite;
-    private float elapsedTimeLastMove = 0f;
-    public BoxCollider2D mapArea;
     private GameManager gameManager;
+    private float timeToMove = 0.08f;
+    private float elapsedTimeLastMove = 0f;
+    private float distanceToMove = 1f;
     private bool isAlive = false;
+    #endregion
 
-    public AudioClip biteSound;
-    public AudioClip beepSound;
-    public AudioClip impactSound;
+    #region ||==|| INSPECTOR VARIABLES ||==||
+    [SerializeField] private Transform snakeBodyPrefab;
+    [SerializeField] private Transform snakeTailPrefab;
+    [SerializeField] private Sprite straightBodySprite;
+    [SerializeField] private Sprite curvedBodySprite;
+    [SerializeField] private BoxCollider2D mapArea;
+    #endregion
+
+    #region ||==|| AUDIO ||==||
+    [SerializeField] private AudioClip biteSound;
+    [SerializeField] private AudioClip beepSound;
+    [SerializeField] private AudioClip impactSound;
     private AudioSource audioSource;
+    #endregion
 
+    #region ||==|| START & UPDATE ||==||
     void Start()
     {
         this.InitSnake();
         this.gameManager = FindObjectOfType<GameManager>();
-
-        audioSource = gameObject.AddComponent<AudioSource>();
+        this.audioSource = this.gameObject.AddComponent<AudioSource>();
     }
 
     void Update()
     {
-        HandleInput();
+        this.HandleInput();
     }
 
     void FixedUpdate()
     {
-        elapsedTimeLastMove += Time.deltaTime;
+        this.elapsedTimeLastMove += Time.deltaTime;
 
-        if (elapsedTimeLastMove > timeToMove && isAlive)
+        if (this.elapsedTimeLastMove > this.timeToMove && this.isAlive)
         {
-            elapsedTimeLastMove = 0f;
-            ProcessBufferedDirection();
-            Move();
+            this.elapsedTimeLastMove = 0f;
+            this.ProcessBufferedDirection();
+            this.Move();
         }
     }
+    #endregion
 
-    private void HandleInput()
-    {
-        if (Input.GetKeyDown(KeyCode.W) && direction != Vector2.down)
-        {
-            AddToBuffer(Vector2.up);
-        }
-        else if (Input.GetKeyDown(KeyCode.S) && direction != Vector2.up)
-        {
-            AddToBuffer(Vector2.down);
-        }
-        else if (Input.GetKeyDown(KeyCode.A) && direction != Vector2.right)
-        {
-            AddToBuffer(Vector2.left);
-        }
-        else if (Input.GetKeyDown(KeyCode.D) && direction != Vector2.left)
-        {
-            AddToBuffer(Vector2.right);
-        }
-    }
-
+    #region ||==|| BUFFER DIRECTION METHODS ||==||
     private void AddToBuffer(Vector2 newDirection)
     {
-        if (directionBuffer.Count < 2)
-        {
-            directionBuffer.Enqueue(newDirection);
-            print($"NUEVA DIRECCION: {newDirection}");
-        }
+        if (this.directionBuffer.Count < 2) this.directionBuffer.Enqueue(newDirection);
     }
 
     private void ProcessBufferedDirection()
     {
-        if (directionBuffer.Count > 0)
-        {
-            var prevDirection = direction;
-            direction = directionBuffer.Dequeue();
-            if (direction != prevDirection)
-            {
-                audioSource.PlayOneShot(beepSound);
-            }
-        }
-    }
+        if (this.directionBuffer.Count <= 0) return;
 
+        var prevDirection = direction;
+        this.direction = directionBuffer.Dequeue();
+        if (this.direction != prevDirection) this.audioSource.PlayOneShot(this.beepSound);
+    }
+    #endregion
+
+    #region ||==|| MAIN METHODS ||==||
     private void Move()
     {
-        Vector3 prevPosition = transform.position;
+        Vector3 prevPosition = this.transform.position;
 
-        transform.position = new Vector3(
-            transform.position.x + direction.x * distanceToMove,
-            transform.position.y + direction.y * distanceToMove,
+        //Muevo la cabeza hacia la direccion.
+        this.transform.position = new Vector3(
+            this.transform.position.x + this.direction.x * this.distanceToMove,
+            this.transform.position.y + this.direction.y * this.distanceToMove,
             0f
         );
 
-        AdjustRotationByDirection(transform, direction);
+        //Ajusto la rotacion de la cabeza por la direccion.
+        this.AdjustRotationByDirection(this.transform, this.direction);
 
+        //Muevo el resto del cuerpo segmento por segmento desde la cola para adelante. Copiando posicion y rotacion del segmento sucesor
         for (int i = snakeBody.Count - 1; i > 0; i--)
         {
-            snakeBody[i].position = snakeBody[i - 1].position;
-            snakeBody[i].rotation = snakeBody[i - 1].rotation;
+            this.snakeBody[i].position = this.snakeBody[i - 1].position;
+            this.snakeBody[i].rotation = this.snakeBody[i - 1].rotation;
         }
 
-        if (snakeBody.Count > 1)
+        //El elemento en el indice 1 siempre sera sucesor de la cabeza, por lo tanto copiamos su direccion y rotacion.
+        if (this.snakeBody.Count > 1)
         {
-            snakeBody[1].position = prevPosition;
-            snakeBody[1].rotation = transform.rotation;
+            this.snakeBody[1].position = prevPosition;
+            this.snakeBody[1].rotation = this.transform.rotation;
         }
 
-        for (int i = snakeBody.Count - 2; i > 0; i--)
+        //Ajustamos el sprite de todos los elementos que estan entre la cola y la cabeza.
+        for (int i = this.snakeBody.Count - 2; i > 0; i--)
         {
-            AdjustSegmentSprite(i);
+            this.AdjustSegmentSprite(i);
         }
 
-        AdjustTailRotation();
+        //Ajustamos la rotacion de la cola.
+        this.AdjustTailRotation();
+    }
+
+    public void InitSnake()
+    {
+        //Destruyo cada segmento de la serpiente menos la cabeza.
+        foreach (var bodySegment in snakeBody)
+        {
+            if (bodySegment != transform) Destroy(bodySegment.gameObject);
+        }
+
+        //Reinicio la posicion y rotacion de la caebeza.
+        this.transform.position = new Vector3(0.5f, 0.5f, 0);
+        this.transform.rotation = Quaternion.Euler(0, 0, 0);
+
+        //Reinicio la direccion.
+        this.direction = Vector2.left;
+
+        //Limpio la lista de segmentos de la serpiente y añado la cabeza como primer elemento.
+        this.snakeBody.Clear();
+        this.snakeBody.Add(transform);
+
+        // Creo un segmento del cuerpo
+        var segmentSnakeBody = Instantiate(this.snakeBodyPrefab);
+        var bodyPosition = this.snakeBody[this.snakeBody.Count - 1].position;
+        bodyPosition.x += 1;
+        segmentSnakeBody.position = bodyPosition;
+        this.snakeBody.Add(segmentSnakeBody);
+
+        // Creo la cola
+        var segmentSnakeTail = Instantiate(this.snakeTailPrefab);
+        var tailPosition = this.snakeBody[this.snakeBody.Count - 1].position;
+        tailPosition.x += 1;
+        segmentSnakeTail.position = tailPosition;
+        this.snakeBody.Add(segmentSnakeTail);
+
+        this.isAlive = true;
+    }
+
+    private void Grow()
+    {
+        this.gameManager.Score++;
+        var segmentSnakeBody = Instantiate(this.snakeBodyPrefab);
+        segmentSnakeBody.position = this.snakeBody[this.snakeBody.Count - 2].position;
+        this.snakeBody.Insert(this.snakeBody.Count - 1, segmentSnakeBody);
+
+        this.audioSource.PlayOneShot(this.biteSound);
+    }
+
+    private void Die()
+    {
+        this.audioSource.PlayOneShot(this.impactSound);
+        this.isAlive = false;
+        this.gameManager.GameOver();
+    }
+
+    private void TeleportToOtherBound(string boundTag)
+    {
+        var newPosition = this.transform.position;
+        switch (boundTag)
+        {
+            case "BoundTop":
+                newPosition.y = MathF.Round(mapArea.bounds.min.y) + 0.5f;
+                break;
+            case "BoundBottom":
+                newPosition.y = MathF.Round(mapArea.bounds.max.y) - 0.5f;
+                break;
+            case "BoundRight":
+                newPosition.x = MathF.Round(mapArea.bounds.min.x) + 0.5f;
+                break;
+            default:
+                newPosition.x = MathF.Round(mapArea.bounds.max.x) - 0.5f;
+                break;
+        }
+        this.transform.position = newPosition;
+    }
+    #endregion
+
+    #region ||==|| AUX METHODS ||==||
+    private void HandleInput()
+    {
+        if (Input.GetKeyDown(KeyCode.W) && direction != Vector2.down) AddToBuffer(Vector2.up);
+        else if (Input.GetKeyDown(KeyCode.S) && direction != Vector2.up) AddToBuffer(Vector2.down);
+        else if (Input.GetKeyDown(KeyCode.A) && direction != Vector2.right) AddToBuffer(Vector2.left);
+        else if (Input.GetKeyDown(KeyCode.D) && direction != Vector2.left) AddToBuffer(Vector2.right);
     }
 
     private void AdjustCurvedBodyRotationByDirection(Transform transform, Vector2 prevDirection, Vector2 nextDirection)
@@ -150,22 +228,10 @@ public class Snake : MonoBehaviour
 
     private void AdjustRotationByDirection(Transform transfrom, Vector2 direction)
     {
-        if (direction == Vector2.up)
-        {
-            transfrom.rotation = Quaternion.Euler(0, 0, -90);
-        }
-        else if (direction == Vector2.down)
-        {
-            transfrom.rotation = Quaternion.Euler(0, 0, 90);
-        }
-        else if (direction == Vector2.left)
-        {
-            transfrom.rotation = Quaternion.Euler(0, 0, 0);
-        }
-        else if (direction == Vector2.right)
-        {
-            transfrom.rotation = Quaternion.Euler(0, 0, 180);
-        }
+        if (direction == Vector2.up) transfrom.rotation = Quaternion.Euler(0, 0, -90);
+        else if (direction == Vector2.down) transfrom.rotation = Quaternion.Euler(0, 0, 90);
+        else if (direction == Vector2.left) transfrom.rotation = Quaternion.Euler(0, 0, 0);
+        else if (direction == Vector2.right) transfrom.rotation = Quaternion.Euler(0, 0, 180);
     }
 
     private void AdjustSegmentSprite(int index)
@@ -179,13 +245,10 @@ public class Snake : MonoBehaviour
 
         if (nextDirection != previousDirection && (VectorUtils.IsNormalized(nextDirection) && VectorUtils.IsNormalized(previousDirection)))
         {
-            AdjustCurvedBodyRotationByDirection(currentSegment, previousDirection, nextDirection);
-            currentSegment.GetComponent<SpriteRenderer>().sprite = curvedBodySprite;
+            this.AdjustCurvedBodyRotationByDirection(currentSegment, previousDirection, nextDirection);
+            currentSegment.GetComponent<SpriteRenderer>().sprite = this.curvedBodySprite;
         }
-        else
-        {
-            currentSegment.GetComponent<SpriteRenderer>().sprite = straightBodySprite;
-        }
+        else currentSegment.GetComponent<SpriteRenderer>().sprite = this.straightBodySprite;
     }
 
     private void AdjustTailRotation()
@@ -195,103 +258,19 @@ public class Snake : MonoBehaviour
 
         var tailDirection = (tailSegment.position - beforeTailSegment.position).normalized;
 
-        if (tailDirection == Vector3.up)
-        {
-            tailSegment.rotation = Quaternion.Euler(0, 0, 90);
-        }
-        else if (tailDirection == Vector3.down)
-        {
-            tailSegment.rotation = Quaternion.Euler(0, 0, -90);
-        }
-        else if (tailDirection == Vector3.left)
-        {
-            tailSegment.rotation = Quaternion.Euler(0, 0, 180);
-        }
-        else if (tailDirection == Vector3.right)
-        {
-            tailSegment.rotation = Quaternion.Euler(0, 0, 0);
-        }
+        if (tailDirection == Vector3.up) tailSegment.rotation = Quaternion.Euler(0, 0, 90);
+        else if (tailDirection == Vector3.down) tailSegment.rotation = Quaternion.Euler(0, 0, -90);
+        else if (tailDirection == Vector3.left) tailSegment.rotation = Quaternion.Euler(0, 0, 180);
+        else if (tailDirection == Vector3.right) tailSegment.rotation = Quaternion.Euler(0, 0, 0);
     }
+    #endregion
 
-    public void InitSnake()
-    {
-        foreach (var bodySegment in snakeBody)
-        {
-            if (bodySegment != transform) // No destruir la cabeza de la serpiente
-            {
-                Destroy(bodySegment.gameObject);
-            }
-        }
-
-        transform.position = new Vector3(0.5f, 0.5f, 0);
-        transform.rotation = Quaternion.Euler(0, 0, 0);
-
-        snakeBody.Clear();
-
-        direction = Vector2.left;
-
-        // Añadir la cabeza
-        snakeBody.Add(transform);
-
-        // Crear un segmento de cuerpo
-        var segmentSnakeBody = Instantiate(snakeBodyPrefab);
-        var bodyPosition = snakeBody[snakeBody.Count - 1].position;
-        bodyPosition.x += 1;
-        segmentSnakeBody.position = bodyPosition;
-        snakeBody.Add(segmentSnakeBody);
-
-        // Crear la cola
-        var segmentSnakeTail = Instantiate(snakeTailPrefab);
-        var tailPosition = snakeBody[snakeBody.Count - 1].position;
-        tailPosition.x += 1;
-        segmentSnakeTail.position = tailPosition;
-        snakeBody.Add(segmentSnakeTail);
-
-        isAlive = true;
-    }
-
-    private void Grow()
-    {
-        gameManager.Score++;
-        var segmentSnakeBody = Instantiate(snakeBodyPrefab);
-        segmentSnakeBody.position = snakeBody[snakeBody.Count - 2].position;
-        snakeBody.Insert(snakeBody.Count - 1, segmentSnakeBody);
-
-        audioSource.PlayOneShot(biteSound);
-    }
-
-    private void Die()
-    {
-        audioSource.PlayOneShot(impactSound);
-        isAlive = false;
-        gameManager.GameOver();
-    }
-
-    private void TeleportToOtherBound(string boundTag)
-    {
-        var newPosition = transform.position;
-        switch (boundTag)
-        {
-            case "BoundTop":
-                newPosition.y = MathF.Round(mapArea.bounds.min.y) + 0.5f;
-                break;
-            case "BoundBottom":
-                newPosition.y = MathF.Round(mapArea.bounds.max.y) - 0.5f;
-                break;
-            case "BoundRight":
-                newPosition.x = MathF.Round(mapArea.bounds.min.x) + 0.5f;
-                break;
-            default:
-                newPosition.x = MathF.Round(mapArea.bounds.max.x) - 0.5f;
-                break;
-        }
-        transform.position = newPosition;
-    }
-
+    #region ||==|| TRIGGER ||==||
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.tag == "Food") Grow();
         else if (other.tag.StartsWith("Bound")) TeleportToOtherBound(other.tag);
         else if (other.tag == "SnakeBody") Die();
     }
+    #endregion
 }

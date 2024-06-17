@@ -5,16 +5,22 @@ using UnityEngine;
 
 public class Food : MonoBehaviour
 {
-    public BoxCollider2D mapArea;
+    #region ||==|| CONSTANTS ||==|| 
     private const int BOUND_OFFSET = 1;
     private const float CENTER_OFFSET = 0.5f;
+    #endregion
+    #region ||==|| INSPECTOR VARIABLES ||==||
+    [SerializeField] private BoxCollider2D mapArea;
+    #endregion
 
-    // Start is called before the first frame update
+    #region ||==|| START AND UPDATE ||==||
     void Start()
     {
         this.RandomizePosition();
     }
+    #endregion
 
+    #region ||==|| AUX METHODS ||==||
     public void RandomizePosition()
     {
         //Agarro los limites del mapa
@@ -28,10 +34,13 @@ public class Food : MonoBehaviour
         //Muevo la manzana a la posicion al azar
         this.transform.position = new Vector3(x, y, 0f);
     }
+    #endregion
 
+    #region ||==|| TRIGGER ||==||
     private void OnTriggerEnter2D(Collider2D other)
     {
         //Si la serpiente choca con la manzana vuelvo a cambiar la posicion
         if (other.tag == "SnakeHead" || other.tag == "SnakeBody") this.RandomizePosition();
     }
+    #endregion
 }
