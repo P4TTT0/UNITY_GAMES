@@ -1,11 +1,15 @@
+using Assets.Scripts.Settings;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Tilemaps;
 
 public class GameManager : MonoBehaviour
 {
+    [SerializeField] private PauseMenu pauseMenu;
+    [SerializeField] private Tilemap woodBounds;
     public GameOverScreen gameOverScreen;
     public int Score
     {
@@ -13,7 +17,7 @@ public class GameManager : MonoBehaviour
         set 
         { 
             this.score = value;
-            this.pointsText.text = $"{this.Score.ToString()} POINTS";
+            this.pointsText.text = $"{this.Score} POINTS";
         }
     }
     public TextMeshProUGUI pointsText;
@@ -26,12 +30,14 @@ public class GameManager : MonoBehaviour
         this.snake = FindObjectOfType<Snake>();
         this.food = FindObjectOfType<Food>();
         this.pointsText.text = "0 POINTS";
+        this.AdjustVolume();
+        this.AdjustDifficulty();
     }
 
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Return) && !this.snake.IsAlive) this.ResetGame();
-        else if (Input.GetKeyDown(KeyCode.Escape)) this.BackToMainMenu();
+        else if (Input.GetKeyDown(KeyCode.Escape)) this.PauseGame();
     }
 
     private void ResetGame()
@@ -43,14 +49,29 @@ public class GameManager : MonoBehaviour
         this.Score = 0;
     }
 
-    private void BackToMainMenu()
+    private void PauseGame()
     {
-        SceneManager.LoadScene("MainMenu");
+        if (!this.snake.IsAlive) return;
+        this.pauseMenu.Pause();
     }
 
     public void GameOver()
     {
         this.gameOverScreen.Setup(this.Score);
         this.pointsText.gameObject.SetActive(false);
+    }
+
+    private void AdjustVolume()
+    {
+        var allAudioSources = FindObjectsOfType<AudioSource>();
+        foreach (AudioSource audioSource in allAudioSources)
+        {
+            audioSource.volume = GameSettings.volume;
+        }
+    }
+
+    private void AdjustDifficulty()
+    {
+        this.woodBounds.gameObject.SetActive(GameSettings.difficultyType == DifficultyType.Easy ? false : true);
     }
 }

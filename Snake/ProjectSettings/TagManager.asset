@@ -21,7 +21,7 @@ TagManager:
   - UI
   - Background
   - DirtBackGround
-  - 
+  - Food
   - 
   - 
   - 
@@ -51,6 +51,9 @@ TagManager:
     locked: 0
   - name: Background
     uniqueID: 774205891
+    locked: 0
+  - name: WoodBackground
+    uniqueID: 49221785
     locked: 0
   - name: Default
     uniqueID: 0

@@ -1,8 +1,10 @@
 using Assets.Scripts;
 using Assets.Scripts.Functions;
+using Assets.Scripts.Settings;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Burst.CompilerServices;
 using UnityEngine;
 
 public class Snake : MonoBehaviour
@@ -11,15 +13,24 @@ public class Snake : MonoBehaviour
     public bool IsAlive { get { return this.isAlive; } }
     #endregion
 
+    #region ||==|| CONSTANTS ||==||
+    private const float CIRCLECAST_RADIUS = 1.0f;
+    private const float CIRCLECAST_DISTANCE = 3.0F;
+    private const float TIME_CLOSE_MOUTH = 0.7f;
+    private const float DISTANCE_MOVE = 1f;
+    #endregion
+
     #region ||==|| VARIABLES ||==||
     public Vector2 direction = Vector2.left;
     private Queue<Vector2> directionBuffer = new Queue<Vector2>(); 
     private List<Transform> snakeBody = new List<Transform>();
     private GameManager gameManager;
+    private Animator animator;
     private float timeToMove = 0.08f;
     private float elapsedTimeLastMove = 0f;
-    private float distanceToMove = 1f;
+    private float elapsedTimeLastNonHit = 0f;
     private bool isAlive = false;
+    private bool isMouthOpen = false;
     #endregion
 
     #region ||==|| INSPECTOR VARIABLES ||==||
@@ -28,6 +39,7 @@ public class Snake : MonoBehaviour
     [SerializeField] private Sprite straightBodySprite;
     [SerializeField] private Sprite curvedBodySprite;
     [SerializeField] private BoxCollider2D mapArea;
+    [SerializeField] private LayerMask foodLayer;
     #endregion
 
     #region ||==|| AUDIO ||==||
@@ -43,11 +55,17 @@ public class Snake : MonoBehaviour
         this.InitSnake();
         this.gameManager = FindObjectOfType<GameManager>();
         this.audioSource = this.gameObject.AddComponent<AudioSource>();
+        this.animator = this.gameObject.GetComponent<Animator>();
+        this.AdjustDifficulty();
     }
 
     void Update()
     {
-        this.HandleInput();
+        if(this.isAlive)
+        {
+            this.HandleInput();
+            this.HandleRaycast();
+        }
     }
 
     void FixedUpdate()
@@ -66,7 +84,7 @@ public class Snake : MonoBehaviour
     #region ||==|| BUFFER DIRECTION METHODS ||==||
     private void AddToBuffer(Vector2 newDirection)
     {
-        if (this.directionBuffer.Count < 2) this.directionBuffer.Enqueue(newDirection);
+        if (this.directionBuffer.Count < 4) this.directionBuffer.Enqueue(newDirection);
     }
 
     private void ProcessBufferedDirection()
@@ -86,8 +104,8 @@ public class Snake : MonoBehaviour
 
         //Muevo la cabeza hacia la direccion.
         this.transform.position = new Vector3(
-            this.transform.position.x + this.direction.x * this.distanceToMove,
-            this.transform.position.y + this.direction.y * this.distanceToMove,
+            this.transform.position.x + this.direction.x * DISTANCE_MOVE,
+            this.transform.position.y + this.direction.y * DISTANCE_MOVE,
             0f
         );
 
@@ -130,8 +148,6 @@ public class Snake : MonoBehaviour
         this.transform.position = new Vector3(0.5f, 0.5f, 0);
         this.transform.rotation = Quaternion.Euler(0, 0, 0);
 
-        //Reinicio la direccion.
-        this.direction = Vector2.left;
 
         //Limpio la lista de segmentos de la serpiente y añado la cabeza como primer elemento.
         this.snakeBody.Clear();
@@ -150,6 +166,9 @@ public class Snake : MonoBehaviour
         tailPosition.x += 1;
         segmentSnakeTail.position = tailPosition;
         this.snakeBody.Add(segmentSnakeTail);
+
+        //Reinicio la direccion.
+        this.direction = Vector2.left;
 
         this.isAlive = true;
     }
@@ -200,6 +219,29 @@ public class Snake : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.S) && direction != Vector2.up) AddToBuffer(Vector2.down);
         else if (Input.GetKeyDown(KeyCode.A) && direction != Vector2.right) AddToBuffer(Vector2.left);
         else if (Input.GetKeyDown(KeyCode.D) && direction != Vector2.left) AddToBuffer(Vector2.right);
+    }
+    private void HandleRaycast()
+    {
+       var raycastHit = Physics2D.CircleCast(this.transform.position, CIRCLECAST_RADIUS, this.direction, CIRCLECAST_DISTANCE, this.foodLayer);
+
+        if (raycastHit.collider is not null)
+        {
+            if (!this.isMouthOpen)
+            {
+                this.animator.SetTrigger("OpenMouth");
+                this.isMouthOpen = true;
+            }
+        }
+        else
+        {
+            this.elapsedTimeLastNonHit += Time.deltaTime;
+            if (this.isMouthOpen && this.elapsedTimeLastNonHit > TIME_CLOSE_MOUTH)
+            {
+                this.elapsedTimeLastNonHit = 0;
+                this.animator.SetTrigger("CloseMouth");
+                this.isMouthOpen = false;
+            }
+        }
     }
 
     private void AdjustCurvedBodyRotationByDirection(Transform transform, Vector2 prevDirection, Vector2 nextDirection)
@@ -263,14 +305,23 @@ public class Snake : MonoBehaviour
         else if (tailDirection == Vector3.left) tailSegment.rotation = Quaternion.Euler(0, 0, 180);
         else if (tailDirection == Vector3.right) tailSegment.rotation = Quaternion.Euler(0, 0, 0);
     }
+
+    private void AdjustDifficulty()
+    {
+        if (GameSettings.difficultyType == DifficultyType.Hard) this.timeToMove = this.timeToMove / 2;
+    }
     #endregion
 
     #region ||==|| TRIGGER ||==||
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.tag == "Food") Grow();
-        else if (other.tag.StartsWith("Bound")) TeleportToOtherBound(other.tag);
         else if (other.tag == "SnakeBody") Die();
+        else if (other.tag.StartsWith("Bound"))
+        {
+            if (GameSettings.difficultyType == DifficultyType.Medium || GameSettings.difficultyType == DifficultyType.Hard) Die();
+            else TeleportToOtherBound(other.tag);
+        }
     }
     #endregion
 }
