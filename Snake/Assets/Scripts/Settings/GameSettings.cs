@@ -10,5 +10,6 @@ namespace Assets.Scripts.Settings
     {
         public static DifficultyType difficultyType = DifficultyType.Easy;
         public static float volume = 1.0f;
+        public static Dictionary<DifficultyType, int> difficultyHighScore = new();
     }
 }

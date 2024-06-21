@@ -11,9 +11,11 @@ public class MainMenu : MonoBehaviour
 {
     [SerializeField] private TMP_Dropdown difficultyDropdown;
     [SerializeField] private Slider volumeSlider;
+    [SerializeField] private TextMeshProUGUI highscoresText;
 
     public void Start()
     {
+        this.GetHighscores();
         this.difficultyDropdown.onValueChanged.AddListener(delegate { OnDifficultyChange(this.difficultyDropdown); });
 
         this.volumeSlider.onValueChanged.AddListener(delegate { OnVolumeChange(this.volumeSlider); });
@@ -51,5 +53,19 @@ public class MainMenu : MonoBehaviour
     private void OnVolumeChange(Slider sender)
     {
         GameSettings.volume = sender.value;
+    }
+
+    private void GetHighscores()
+    {
+        this.highscoresText.text = string.Empty;
+        foreach (var difficulty in Enum.GetValues(typeof(DifficultyType)))
+        {
+            if (difficulty is DifficultyType parsedDifficulty)
+            {
+                var prefsKey = $"{parsedDifficulty}HighScore";
+                GameSettings.difficultyHighScore[parsedDifficulty] = PrefsUtils.GetInt(prefsKey);
+                this.highscoresText.text += $"{parsedDifficulty}: {GameSettings.difficultyHighScore[parsedDifficulty]} \n";
+            }
+        }
     }
 }

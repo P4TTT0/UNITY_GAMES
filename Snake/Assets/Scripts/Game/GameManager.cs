@@ -1,4 +1,5 @@
 using Assets.Scripts.Settings;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -37,7 +38,11 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Return) && !this.snake.IsAlive) this.ResetGame();
-        else if (Input.GetKeyDown(KeyCode.Escape)) this.PauseGame();
+        else if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (this.snake.IsAlive) this.PauseGame();
+            else SceneManager.LoadScene("MainMenu");
+        }
     }
 
     private void ResetGame()
@@ -57,7 +62,8 @@ public class GameManager : MonoBehaviour
 
     public void GameOver()
     {
-        this.gameOverScreen.Setup(this.Score);
+        var isScoreGreater = this.UpdateHighscoreIfGreater(this.Score);
+        this.gameOverScreen.Setup(!isScoreGreater ? $"{this.Score} POINTS." : $"{this.Score} POINTS. \n ¡HIGHSCORE!");
         this.pointsText.gameObject.SetActive(false);
     }
 
@@ -73,5 +79,16 @@ public class GameManager : MonoBehaviour
     private void AdjustDifficulty()
     {
         this.woodBounds.gameObject.SetActive(GameSettings.difficultyType == DifficultyType.Easy ? false : true);
+    } 
+    
+    private bool UpdateHighscoreIfGreater(int score)
+    {
+        if (GameSettings.difficultyHighScore[GameSettings.difficultyType] < score)
+        {
+            var prefsKey = $"{GameSettings.difficultyType}HighScore";
+            PlayerPrefs.SetInt(prefsKey, score);
+            return true;
+        }
+        return false;
     }
 }
